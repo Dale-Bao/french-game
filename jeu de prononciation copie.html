@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jeu de Cartes Audio - Phonèmes en Familles</title>
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; text-align: center; background-color: #f4f7f6; padding: 20px; color: #333; margin: 0; }
+  #game-container { max-width: 600px; margin: 20px auto; background: white; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); }
+  
+  .card { display: none; margin: 20px auto; width: 320px; height: 480px; background: #fff; border: 8px solid #ccc; border-radius: 20px; cursor: pointer; flex-direction: column; justify-content: space-around; align-items: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;}
+  .card:active { transform: scale(0.95); }
+  
+  /* 阴阳性颜色样式 */
+  .card.masculin { border-color: #3498db; background: linear-gradient(to bottom, #ffffff, #e1f0fa); }
+  .card.feminin { border-color: #e74c3c; background: linear-gradient(to bottom, #ffffff, #fcebe9); }
+
+  .gender-tag { position: absolute; top: 15px; right: 15px; font-size: 1.2em; font-weight: bold; padding: 5px 15px; border-radius: 20px; color: white; }
+  .masculin .gender-tag { background-color: #3498db; }
+  .masculin .gender-tag::before { content: 'un / le (M)'; }
+  .feminin .gender-tag { background-color: #e74c3c; }
+  .feminin .gender-tag::before { content: 'une / la (F)'; }
+  
+  .image-area { height: 260px; width: 100%; display: flex; align-items: center; justify-content: center; margin-top: 40px; }
+  /* 加了底色和阴影，让卡片看起来更精美 */
+  .real-image { max-width: 90%; max-height: 100%; border-radius: 10px; object-fit: contain; box-shadow: 0 4px 10px rgba(0,0,0,0.1);} 
+  
+  .word { font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 10px;}
+  .hint { font-size: 1em; color: #666; background: rgba(255,255,255,0.7); padding: 5px 15px; border-radius: 15px;}
+  
+  .controls { margin-top: 20px; }
+  button { padding: 15px 30px; font-size: 1.2em; border: none; border-radius: 50px; cursor: pointer; margin: 5px; font-weight: bold; transition: 0.3s; color: white;}
+  #start-btn { background-color: #4CAF50; }
+  #next-btn { background-color: #2196F3; display: none; }
+  
+  .welcome-text { font-size: 1.1em; color: #555; margin-bottom: 30px; }
+</style>
+</head>
+<body>
+
+<div id="game-container">
+  <h2>🌟 法语发音与阴阳性抽卡游戏</h2>
+  <div class="welcome-text" id="welcome-msg">
+    点击“开始游戏”，复习《Phonèmes en familles》词汇！
+  </div>
+  
+  <button id="start-btn" onclick="startGame()">Commencer (开始游戏)</button>
+  
+  <div id="flashcard" class="card" onclick="playSound()">
+    <div class="gender-tag"></div>
+    <div class="image-area">
+        <img id="word-img" class="real-image" src="" alt="carte">
+    </div>
+    <div class="word" id="word-display">mot</div>
+    <div class="hint">🔊 Appuyez pour écouter</div>
+  </div>
+
+  <div class="controls">
+    <button id="next-btn" onclick="nextCard()">Suivant (下一张)</button>
+  </div>
+</div>
+
+<script>
+  // 我将提取出的词汇和阴阳性整理成了线上数据库
+  const vocabulary = [
+    { w: "glace", g: "F" }, { w: "fée", g: "F" }, { w: "casquette", g: "F" },
+    { w: "champignon", g: "M" }, { w: "montagne", g: "F" }, { w: "château", g: "M" },
+    { w: "toupie", g: "F" }, { w: "ciseaux", g: "M" }, { w: "croissant", g: "M" },
+    { w: "nez", g: "M" }, { w: "escargot", g: "M" }, { w: "feu", g: "M" },
+    { w: "père Noël", g: "M" }, { w: "bleu", g: "M" }, { w: "chaise", g: "F" },
+    { w: "flèche", g: "F" }, { w: "wagon", g: "M" }, { w: "voiture", g: "F" },
+    { w: "réveil", g: "M" }, { w: "verre", g: "M" }, { w: "niche", g: "F" },
+    { w: "dinosaure", g: "M" }, { w: "tracteur", g: "M" }, { w: "main", g: "F" },
+    { w: "sapin", g: "M" }, { w: "yaourt", g: "M" }, { w: "feuille", g: "F" },
+    { w: "nœud", g: "M" }, { w: "requin", g: "M" }, { w: "dromadaire", g: "M" },
+    { w: "cadeau", g: "M" }, { w: "boule", g: "F" }, { w: "kangourou", g: "M" },
+    { w: "pyjama", g: "M" }, { w: "journal", g: "M" }, { w: "grenouille", g: "F" },
+    { w: "fourchette", g: "F" }, { w: "lampe", g: "F" }, { w: "rouge", g: "M" },
+    { w: "arrosoir", g: "M" }, { w: "raquette", g: "F" }, { w: "perroquet", g: "M" },
+    { w: "moufles", g: "F" }, { w: "enveloppe", g: "F" }, { w: "éventail", g: "M" },
+    { w: "bonbon", g: "M" }, { w: "biberon", g: "M" }, { w: "balançoire", g: "F" },
+    { w: "roue", g: "F" }, { w: "robe", g: "F" }, { w: "stylo", g: "M" },
+    { w: "cygne", g: "M" }, { w: "yeux", g: "M" }, { w: "skis", g: "M" },
+    { w: "montre", g: "F" }, { w: "papillon", g: "M" }, { w: "pompier", g: "M" },
+    { w: "mouton", g: "M" }, { w: "fleur", g: "F" }, { w: "muguet", g: "M" },
+    { w: "poisson", g: "M" }, { w: "ordinateur", g: "M" }, { w: "trompette", g: "F" },
+    { w: "lunettes", g: "F" }, { w: "cochon", g: "M" }, { w: "cloche", g: "F" },
+    { w: "pieuvre", g: "F" }, { w: "grue", g: "F" }, { w: "téléphone", g: "M" },
+    { w: "chien", g: "M" }, { w: "maison", g: "F" }, { w: "fantôme", g: "M" },
+    { w: "tigre", g: "M" }, { w: "clé", g: "F" }, { w: "sac", g: "M" },
+    { w: "couronne", g: "F" }, { w: "artichaut", g: "M" }, { w: "baleine", g: "F" },
+    { w: "œuf", g: "M" }, { w: "ceinture", g: "F" }, { w: "éléphant", g: "M" },
+    { w: "ours", g: "M" }, { w: "bouteille", g: "F" }, { w: "araignée", g: "F" },
+    { w: "peigne", g: "M" }, { w: "ampoule", g: "F" }, { w: "hélicoptère", g: "M" },
+    { w: "banc", g: "M" }, { w: "sucette", g: "F" }, { w: "bateau", g: "M" },
+    { w: "marteau", g: "M" }, { w: "guitare", g: "F" }, { w: "corde", g: "F" },
+    { w: "âne", g: "M" }, { w: "tortue", g: "F" }, { w: "nuage", g: "M" },
+    { w: "bobine", g: "F" }, { w: "bol", g: "M" }, { w: "crabe", g: "M" }, { w: "étoile", g: "F" }
+  ];
+
+  let currentItem = null;
+
+  function startGame() {
+    document.getElementById('start-btn').style.display = 'none';
+    document.getElementById('welcome-msg').style.display = 'none';
+    document.getElementById('next-btn').style.display = 'inline-block';
+    nextCard();
+  }
+
+  function nextCard() {
+    currentItem = vocabulary[Math.floor(Math.random() * vocabulary.length)];
+    const flashcard = document.getElementById('flashcard');
+    const imgElement = document.getElementById('word-img');
+    
+    document.getElementById('word-display').textContent = currentItem.w;
+    
+    // 【核心机制】代码会自动去网站的 images 文件夹里抓取同名图片
+    // 为了兼容性，它会先尝试加载 .jpg，如果失败了会自动尝试加载 .png
+    imgElement.src = `images/${currentItem.w}.jpg`;
+    imgElement.onerror = function() {
+        if (!this.src.endsWith('.png')) {
+            this.src = `images/${currentItem.w}.png`;
+        }
+    };
+    
+    flashcard.classList.remove('masculin', 'feminin');
+    if (currentItem.g === 'M') flashcard.classList.add('masculin');
+    else if (currentItem.g === 'F') flashcard.classList.add('feminin');
+
+    flashcard.style.display = 'flex';
+  }
+
+  function playSound() {
+    if (currentItem) {
+      window.speechSynthesis.cancel();
+      const msg = new SpeechSynthesisUtterance(currentItem.w);
+      msg.lang = 'fr-FR'; 
+      msg.rate = 0.8; 
+      window.speechSynthesis.speak(msg);
+    }
+  }
+</script>
+
+</body>
+</html>
