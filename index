@@ -11,7 +11,6 @@
   .card { display: none; margin: 20px auto; width: 320px; height: 480px; background: #fff; border: 8px solid #ccc; border-radius: 20px; cursor: pointer; flex-direction: column; justify-content: space-around; align-items: center; transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); position: relative;}
   .card:active { transform: scale(0.95); }
   
-  /* 阴阳性颜色样式 */
   .card.masculin { border-color: #3498db; background: linear-gradient(to bottom, #ffffff, #e1f0fa); }
   .card.feminin { border-color: #e74c3c; background: linear-gradient(to bottom, #ffffff, #fcebe9); }
 
@@ -22,7 +21,6 @@
   .feminin .gender-tag::before { content: 'une / la (F)'; }
   
   .image-area { height: 260px; width: 100%; display: flex; align-items: center; justify-content: center; margin-top: 40px; }
-  /* 加了底色和阴影，让卡片看起来更精美 */
   .real-image { max-width: 90%; max-height: 100%; border-radius: 10px; object-fit: contain; box-shadow: 0 4px 10px rgba(0,0,0,0.1);} 
   
   .word { font-size: 2.5em; font-weight: bold; color: #2c3e50; margin-bottom: 10px;}
@@ -61,7 +59,6 @@
 </div>
 
 <script>
-  // 我将提取出的词汇和阴阳性整理成了线上数据库
   const vocabulary = [
     { w: "glace", g: "F" }, { w: "fée", g: "F" }, { w: "casquette", g: "F" },
     { w: "champignon", g: "M" }, { w: "montagne", g: "F" }, { w: "château", g: "M" },
@@ -107,19 +104,29 @@
     nextCard();
   }
 
+  // 智能脱去重音符号的函数
+  function getSafeFileName(word) {
+    return word.toLowerCase()
+               .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // 移除所有常见音符 (é -> e)
+               .replace(/œ/g, "oe") // 处理 œ 特殊字符
+               .replace(/\s+/g, "_"); // 空格变成下划线
+  }
+
   function nextCard() {
     currentItem = vocabulary[Math.floor(Math.random() * vocabulary.length)];
     const flashcard = document.getElementById('flashcard');
     const imgElement = document.getElementById('word-img');
     
+    // 界面上显示完美的法语原词
     document.getElementById('word-display').textContent = currentItem.w;
     
-    // 【核心机制】代码会自动去网站的 images 文件夹里抓取同名图片
-    // 为了兼容性，它会先尝试加载 .jpg，如果失败了会自动尝试加载 .png
-    imgElement.src = `images/${currentItem.w}.jpg`;
+    // 获取安全的无音符文件名
+    const safeName = getSafeFileName(currentItem.w);
+    
+    imgElement.src = `images/${safeName}.jpg`;
     imgElement.onerror = function() {
         if (!this.src.endsWith('.png')) {
-            this.src = `images/${currentItem.w}.png`;
+            this.src = `images/${safeName}.png`;
         }
     };
     
